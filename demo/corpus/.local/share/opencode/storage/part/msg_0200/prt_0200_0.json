@@ -1,0 +1,7 @@
+{
+ "id": "prt_0200_0",
+ "sessionID": "ses_3e8d81a3536d5a6a8a6ca778b2",
+ "messageID": "msg_0200",
+ "type": "text",
+ "text": "The dev server takes 40 seconds to start and create-react-app is unmaintained. Move shopfront to Vite."
+}

@@ -1,0 +1,11 @@
+{
+ "id": "ses_41cbcd0671f4567cb87b9af4af",
+ "projectID": "proj_notes_app",
+ "directory": "/work/notes-app",
+ "title": "Full text search",
+ "version": "0.15.0",
+ "time": {
+  "created": 1793908800000,
+  "updated": 1793910360000
+ }
+}

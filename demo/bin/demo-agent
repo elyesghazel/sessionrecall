@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""A scripted stand-in for a coding agent, for the demo GIF.
+
+The tool call is real: it starts `recall mcp`, speaks MCP over stdio and prints what
+the server returns for the demo corpus. Only the agent's prose around it is fixed, so
+the recording does not depend on a model, an account or the network.
+"""
+
+import json
+import subprocess
+import sys
+import textwrap
+import time
+
+QUESTION = "how did we fix the flaky checkout test last month?"
+CALL = {"query": "flaky checkout end-to-end test", "limit": 1}
+ANSWER = (
+    "Session 5e392f94 (27 Oct, /work/shopfront): the test waited a fixed 2 seconds after "
+    "clicking Pay. It now waits for the /api/payments response, ran green 50 times in a "
+    "row, and retries record a Playwright trace. Want me to check the new test for the same "
+    "pattern?"
+)
+
+DIM, BOLD, CYAN, GREEN, RESET = "\033[2m", "\033[1m", "\033[36m", "\033[32m", "\033[0m"
+
+
+def rpc(proc, method, params=None, id_=None):
+    msg = {"jsonrpc": "2.0", "method": method}
+    if params is not None:
+        msg["params"] = params
+    if id_ is not None:
+        msg["id"] = id_
+    proc.stdin.write(json.dumps(msg) + "\n")
+    proc.stdin.flush()
+    while id_ is not None:
+        reply = json.loads(proc.stdout.readline())
+        if reply.get("id") == id_:
+            return reply
+
+
+def search():
+    proc = subprocess.Popen(["recall", "mcp"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, text=True)
+    rpc(proc, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
+                             "clientInfo": {"name": "demo-agent", "version": "0"}}, 1)
+    rpc(proc, "notifications/initialized")
+    reply = rpc(proc, "tools/call", {"name": "search", "arguments": CALL}, 2)
+    proc.stdin.close()
+    proc.wait()
+    return "\n".join(c.get("text", "") for c in reply["result"]["content"])
+
+
+def slow(text, delay=0.004):
+    for ch in text:
+        sys.stdout.write(ch)
+        sys.stdout.flush()
+        time.sleep(delay)
+    print()
+
+
+def main():
+    width = 130
+    print(f"{BOLD}> {QUESTION}{RESET}\n")
+    time.sleep(0.6)
+    args = ", ".join(f"{k}={json.dumps(v)}" for k, v in CALL.items())
+    print(f"{CYAN}● recall.search{RESET}{DIM}({args})  via MCP{RESET}")
+    result = search()
+    for line in result.splitlines():
+        if line.startswith("now:") or not line.strip():
+            continue
+        line = line.strip()
+        print(f"{DIM}  │ {line if len(line) <= width else line[:width - 3] + '...'}{RESET}")
+    print()
+    time.sleep(0.5)
+    sys.stdout.write(f"{GREEN}●{RESET} ")
+    slow(textwrap.fill(ANSWER, width, subsequent_indent="  "))
+
+
+if __name__ == "__main__":
+    main()

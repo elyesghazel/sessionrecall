@@ -1,0 +1,7 @@
+{
+ "id": "prt_0703_0",
+ "sessionID": "ses_e37b60f2286650f395f5fb9ad6",
+ "messageID": "msg_0703",
+ "type": "text",
+ "text": "Keep it as `unless-stopped`. The healthcheck fixes the start order, the restart policy still covers crashes later."
+}

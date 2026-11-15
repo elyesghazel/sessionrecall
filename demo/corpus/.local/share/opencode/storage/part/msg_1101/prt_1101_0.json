@@ -1,0 +1,7 @@
+{
+ "id": "prt_1101_0",
+ "sessionID": "ses_41cbcd0671f4567cb87b9af4af",
+ "messageID": "msg_1101",
+ "type": "text",
+ "text": "Yes, with FTS5. I added a `notes_fts` virtual table with the porter tokenizer, triggers that keep it in sync on insert, update and delete, and changed the search endpoint to use MATCH with bm25 ranking."
+}

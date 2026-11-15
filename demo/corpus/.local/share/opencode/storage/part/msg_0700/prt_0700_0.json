@@ -1,0 +1,7 @@
+{
+ "id": "prt_0700_0",
+ "sessionID": "ses_e37b60f2286650f395f5fb9ad6",
+ "messageID": "msg_0700",
+ "type": "text",
+ "text": "The worker container keeps restarting every few seconds after the deploy."
+}
