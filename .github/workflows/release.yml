@@ -1,18 +1,17 @@
 name: Release
 
-# Publishes to PyPI when a version tag is pushed, via trusted publishing (no token).
-# One-time setup on pypi.org: add a trusted publisher for this repository with
-# workflow "release.yml" and environment "pypi".
+# On a version tag: test, build, and attach the wheel and sdist to a GitHub release.
+# Nothing is published to a package index; install from GitHub (see the README).
 
 on:
   push:
     tags: ["v*"]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,20 +23,7 @@ jobs:
       - run: uv sync --locked
       - run: uv run pytest -q
       - run: uv build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --notes "See CHANGELOG.md."
