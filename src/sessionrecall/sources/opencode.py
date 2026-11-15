@@ -25,7 +25,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from agentrecall.sources.base import Session, Source, Turn, tilde
+from sessionrecall.sources.base import Session, Source, Turn, tilde
 
 
 def default_data_dir() -> Path:

@@ -32,15 +32,15 @@ from functools import cached_property
 from pathlib import Path
 from typing import TextIO
 
-from agentrecall import __version__, background
-from agentrecall.config import Config, ConfigError, load_config
-from agentrecall.index import Embedder, FastEmbedder, update_index
-from agentrecall.redact import RedactingWriter
-from agentrecall.search import Filters, exact_search, semantic_search, snippet
-from agentrecall.sources import REGISTRY, Session, Source, all_sessions, build_sources, id_matches, short_id
-from agentrecall.store import Forgotten, Store
-from agentrecall.timeutil import DateFilter, ago, now_line, stamp
-from agentrecall.titles import load_titles
+from sessionrecall import __version__, background
+from sessionrecall.config import Config, ConfigError, load_config
+from sessionrecall.index import Embedder, FastEmbedder, update_index
+from sessionrecall.redact import RedactingWriter
+from sessionrecall.search import Filters, exact_search, semantic_search, snippet
+from sessionrecall.sources import REGISTRY, Session, Source, all_sessions, build_sources, id_matches, short_id
+from sessionrecall.store import Forgotten, Store
+from sessionrecall.timeutil import DateFilter, ago, now_line, stamp
+from sessionrecall.titles import load_titles
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -70,8 +70,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--unforget", metavar="SESSION")
     ap.add_argument("--forgotten", action="store_true", help="list forgotten sessions")
     ap.add_argument("--wait", action="store_true", help="never search in the background (see recall install claude)")
-    ap.add_argument("--config", type=Path, metavar="PATH", help="config file (default ~/.config/agentrecall/config.toml)")
-    ap.add_argument("--version", action="version", version=f"agentrecall {__version__}")
+    ap.add_argument("--config", type=Path, metavar="PATH", help="config file (default ~/.config/sessionrecall/config.toml)")
+    ap.add_argument("--version", action="version", version=f"sessionrecall {__version__}")
     return ap
 
 
@@ -280,10 +280,10 @@ def is_subcommand(argv: list[str]) -> bool:
 
 def subcommand(name: str, argv: list[str], embedder: Embedder | None) -> int:
     if name == "mcp":
-        from agentrecall.mcp_server import serve
+        from sessionrecall.mcp_server import serve
 
         return serve(embedder)
-    from agentrecall import install
+    from sessionrecall import install
 
     return install.main(argv)
 

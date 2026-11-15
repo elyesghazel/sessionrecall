@@ -2,7 +2,7 @@
 #
 #     vhs demo/screenshots.tape   # from the repo root
 
-Output "/tmp/agentrecall-demo-screenshots.gif"
+Output "/tmp/sessionrecall-demo-screenshots.gif"
 
 Set Shell bash
 Set FontFamily "JetBrainsMono Nerd Font"

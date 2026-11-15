@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from agentrecall import cli
+from sessionrecall import cli
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -74,7 +74,7 @@ def isolated_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(home / ".config"))
     monkeypatch.setenv("XDG_CACHE_HOME", str(home / ".cache"))
     monkeypatch.setenv("XDG_STATE_HOME", str(home / ".local/state"))
-    monkeypatch.delenv("AGENTRECALL_CONFIG", raising=False)
+    monkeypatch.delenv("SESSIONRECALL_CONFIG", raising=False)
     monkeypatch.delenv("CLAUDE_CONFIG_DIR", raising=False)
     monkeypatch.delenv("CLAUDE_CODE_SESSION_ID", raising=False)
     monkeypatch.delenv("CODEX_HOME", raising=False)
@@ -132,7 +132,7 @@ def opencode_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def config_file(isolated_env: Path, projects: Path) -> Path:
-    path = isolated_env / ".config" / "agentrecall" / "config.toml"
+    path = isolated_env / ".config" / "sessionrecall" / "config.toml"
     path.parent.mkdir(parents=True)
     path.write_text(f'[sources.claude]\npaths = ["{projects}"]\n')
     return path

@@ -23,7 +23,7 @@ Look at your own sessions first, but never commit them. Note:
 
 ## 2. Write the module
 
-`src/agentrecall/sources/<agent>.py`, subclassing `agentrecall.sources.base.Source`:
+`src/sessionrecall/sources/<agent>.py`, subclassing `sessionrecall.sources.base.Source`:
 
 ```python
 class GeminiSource(Source):
@@ -65,7 +65,7 @@ What matters:
 
 ## 3. Register it
 
-Add the class to `REGISTRY` in `src/agentrecall/sources/__init__.py`. It is then:
+Add the class to `REGISTRY` in `src/sessionrecall/sources/__init__.py`. It is then:
 
 - used automatically when `available()` is true,
 - configurable as `[sources.<name>]`, and turned off with `enabled = false`,

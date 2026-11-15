@@ -1,8 +1,8 @@
 import json
 import sqlite3
 
-from agentrecall.sources.opencode import OpenCodeSource, default_data_dir
 from conftest import DARK_MODE, RSS, WEBP
+from sessionrecall.sources.opencode import OpenCodeSource, default_data_dir
 
 
 def by_id(data_dir):

@@ -2,7 +2,7 @@ import io
 
 import pytest
 
-from agentrecall.redact import MASK, RedactingWriter, redact
+from sessionrecall.redact import MASK, RedactingWriter, redact
 
 # Built from pieces so the repo never contains anything a secret scanner would flag.
 FAKE_TOKENS = [

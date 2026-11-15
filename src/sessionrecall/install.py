@@ -2,7 +2,7 @@
 
 Every change is planned first and printed. Files are only written when something
 actually changes (so running it twice is a no-op), and every existing file is copied
-to `<file>.bak-agentrecall-<time>` before it is rewritten. `--print` shows the plan and
+to `<file>.bak-sessionrecall-<time>` before it is rewritten. `--print` shows the plan and
 the snippets without writing anything; `--uninstall` removes exactly what install adds.
 """
 
@@ -22,8 +22,8 @@ from pathlib import Path
 from typing import Any
 
 SERVER = "recall"  # the MCP server name in every agent's config
-BACKGROUND_ENV = "AGENTRECALL_BACKGROUND"
-SKILL_MARK = "installed by agentrecall"
+BACKGROUND_ENV = "SESSIONRECALL_BACKGROUND"
+SKILL_MARK = "installed by sessionrecall"
 
 
 class InstallError(Exception):
@@ -169,17 +169,17 @@ def plan_claude(uninstall: bool, *, hook: bool, mcp: bool, skill: bool, recall: 
     if skill:
         path = claude_dir() / "skills" / "recall" / "SKILL.md"
         before = _read(path)
-        text = resources.files("agentrecall").joinpath("skill/SKILL.md").read_text()
+        text = resources.files("sessionrecall").joinpath("skill/SKILL.md").read_text()
         ours = before is None or SKILL_MARK in before
         if uninstall:
             after = None if before is not None and ours else before
             notes = ["delete the /recall skill"] if after != before else []
         elif not ours:
-            raise InstallError(f"{tilde(path)} exists and was not installed by agentrecall; move it away or use --no-skill")
+            raise InstallError(f"{tilde(path)} exists and was not installed by sessionrecall; move it away or use --no-skill")
         else:
             after = text
             notes = ["write the /recall skill"] if before != text else []
-        changes.append(Change(path, before, after, notes, "(a copy of agentrecall/skill/SKILL.md)", backup=False))
+        changes.append(Change(path, before, after, notes, "(a copy of sessionrecall/skill/SKILL.md)", backup=False))
     return changes
 
 
@@ -303,7 +303,7 @@ def apply(changes: list[Change], out=sys.stdout) -> None:
         if not c.changed:
             continue
         if c.before is not None and c.backup:
-            backup = c.path.with_name(f"{c.path.name}.bak-agentrecall-{stamp}")
+            backup = c.path.with_name(f"{c.path.name}.bak-sessionrecall-{stamp}")
             shutil.copy2(c.path, backup)
             print(f"  backup: {tilde(backup)}", file=out)
         if c.after is None:
@@ -311,7 +311,7 @@ def apply(changes: list[Change], out=sys.stdout) -> None:
             _prune(c.path.parent)
             continue
         c.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = c.path.with_name(f".{c.path.name}.agentrecall-tmp")
+        tmp = c.path.with_name(f".{c.path.name}.sessionrecall-tmp")
         tmp.write_text(c.after)
         if c.before is not None:
             shutil.copymode(c.path, tmp)

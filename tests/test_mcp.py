@@ -10,22 +10,22 @@ from pathlib import Path
 
 import pytest
 
-from agentrecall.tools import MAX_CHARS, ToolError, Tools
 from conftest import BACKUP, MIGRATION, MONITORING, RATE_LIMIT, WEBP, WEBSHOP, HashEmbedder
+from sessionrecall.tools import MAX_CHARS, ToolError, Tools
 
 pytest.importorskip("mcp")
 
 # Runs the real server, with the fake embedder so nothing is downloaded.
 LAUNCH = (
     "import sys; sys.path.insert(0, sys.argv[1]);"
-    "from conftest import HashEmbedder; from agentrecall import cli;"
+    "from conftest import HashEmbedder; from sessionrecall import cli;"
     "raise SystemExit(cli.main(['mcp'], embedder=HashEmbedder()))"
 )
 
 
 class StdioClient:
     def __init__(self, config_file: Path) -> None:
-        env = {**os.environ, "AGENTRECALL_CONFIG": str(config_file)}
+        env = {**os.environ, "SESSIONRECALL_CONFIG": str(config_file)}
         self.proc = subprocess.Popen(
             [sys.executable, "-c", LAUNCH, str(Path(__file__).parent)],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
@@ -123,7 +123,7 @@ def test_agent_filter_and_errors_over_stdio(client):
 
 @pytest.fixture
 def tools(config_file) -> Tools:
-    from agentrecall.config import load_config
+    from sessionrecall.config import load_config
 
     return Tools(load_config(config_file), HashEmbedder())
 

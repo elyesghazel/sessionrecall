@@ -3,7 +3,7 @@ name: recall
 description: Search the user's past coding-agent sessions on this machine by meaning, with the `recall` CLI or the recall MCP tools. Use when the user types /recall, refers to earlier work ("like last time", "the fix we did last week", "where did we leave X", "didn't we already solve this"), asks what happened in a past session or on a date, or before redoing something that may have been solved in an earlier session.
 ---
 
-<!-- installed by agentrecall (recall install claude); recall install claude --uninstall removes it -->
+<!-- installed by sessionrecall (recall install claude); recall install claude --uninstall removes it -->
 
 # recall: search past sessions
 

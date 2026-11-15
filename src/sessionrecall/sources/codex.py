@@ -15,7 +15,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from agentrecall.sources.base import Session, Source, Turn, read_new_lines, tilde
+from sessionrecall.sources.base import Session, Source, Turn, read_new_lines, tilde
 
 # rollout-2026-01-05T09-00-00-<session uuid>[_<window uuid>].jsonl
 FILENAME = re.compile(r"rollout-\d{4}-\d\d-\d\dT\d\d-\d\d-\d\d-([0-9a-fA-F-]{36})")

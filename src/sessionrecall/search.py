@@ -8,10 +8,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from agentrecall.index import Embedder
-from agentrecall.sources import Source, Turn, all_sessions
-from agentrecall.store import Chunk
-from agentrecall.timeutil import DateFilter
+from sessionrecall.index import Embedder
+from sessionrecall.sources import Source, Turn, all_sessions
+from sessionrecall.store import Chunk
+from sessionrecall.timeutil import DateFilter
 
 HITS_PER_SESSION = 3
 # Semantic score bonus when every query word also appears literally in the chunk.

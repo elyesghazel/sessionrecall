@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from agentrecall.sources.base import read_new_lines
-from agentrecall.sources.claude import ClaudeCodeSource, default_projects_dir, parse_line
 from conftest import BACKUP, MONITORING, WEBSHOP
+from sessionrecall.sources.base import read_new_lines
+from sessionrecall.sources.claude import ClaudeCodeSource, default_projects_dir, parse_line
 
 
 def session_path(projects: Path, sid: str) -> Path:

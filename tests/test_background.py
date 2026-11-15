@@ -10,17 +10,17 @@ import time
 
 import pytest
 
-from agentrecall import background, cli
 from conftest import MONITORING, HashEmbedder
+from sessionrecall import background, cli
 
 SID = "11111111-2222-4333-8444-555555555555"
 
 
 @pytest.fixture
 def in_session(monkeypatch, config_file):
-    monkeypatch.setenv("AGENTRECALL_CONFIG", str(config_file))
+    monkeypatch.setenv("SESSIONRECALL_CONFIG", str(config_file))
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", SID)
-    monkeypatch.setenv("AGENTRECALL_BACKGROUND", "1")
+    monkeypatch.setenv("SESSIONRECALL_BACKGROUND", "1")
     monkeypatch.setattr(cli, "main", functools.partial(cli.main, embedder=HashEmbedder()))
     return background.inbox(SID)
 
@@ -40,9 +40,9 @@ def test_only_semantic_searches_in_a_session_go_to_the_background(in_session, mo
     for argv in (["--wait", "grafana"], ["--exact", "grafana"], ["-r", "x"], ["--list"], ["--show", "ab"],
                  ["--index"], ["--forget"], ["--forgotten"]):
         assert not background.wanted(parse(*argv)), argv
-    monkeypatch.setenv("AGENTRECALL_BACKGROUND", "0")
+    monkeypatch.setenv("SESSIONRECALL_BACKGROUND", "0")
     assert not background.wanted(parse("grafana"))
-    monkeypatch.setenv("AGENTRECALL_BACKGROUND", "1")
+    monkeypatch.setenv("SESSIONRECALL_BACKGROUND", "1")
     monkeypatch.delenv("CLAUDE_CODE_SESSION_ID")
     assert not background.wanted(parse("grafana"))
 
@@ -52,7 +52,7 @@ def test_spawn_starts_a_detached_worker(in_session, monkeypatch, capsys):
     monkeypatch.setattr(background.subprocess, "Popen", lambda args, **kw: started.append((args, kw)))
     cli.main(["--since", "30", "grafana", "dashboards"])
     (args, kw), = started
-    assert args[1:3] == ["-m", "agentrecall.background"]
+    assert args[1:3] == ["-m", "sessionrecall.background"]
     assert args[3].endswith(".part") and args[3].startswith(str(in_session))
     assert args[4:] == ["grafana dashboards", "--since", "30", "grafana", "dashboards"]
     assert kw["start_new_session"]
