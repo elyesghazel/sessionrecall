@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from agentrecall import install
+from sessionrecall import install
 
 RECALL = "/opt/tools/bin/recall"
 INJECT = "/opt/tools/bin/recall-inject"
@@ -28,7 +28,7 @@ def run(*argv: str) -> str:
 
 
 def backups(path: Path) -> list[Path]:
-    return sorted(path.parent.glob(f"{path.name}.bak-agentrecall-*"))
+    return sorted(path.parent.glob(f"{path.name}.bak-sessionrecall-*"))
 
 
 def test_paths_stay_in_the_temp_home(isolated_env):
@@ -39,7 +39,7 @@ def test_paths_stay_in_the_temp_home(isolated_env):
 def test_claude_fresh_install(isolated_env):
     out = run("claude")
     settings = json.loads((isolated_env / ".claude/settings.json").read_text())
-    assert settings["env"] == {"AGENTRECALL_BACKGROUND": "1"}
+    assert settings["env"] == {"SESSIONRECALL_BACKGROUND": "1"}
     assert settings["hooks"]["PostToolUse"][0]["hooks"][0]["command"] == INJECT
     assert settings["hooks"]["Stop"][0]["hooks"][0]["command"] == INJECT
     mcp = json.loads((isolated_env / ".claude.json").read_text())["mcpServers"]["recall"]
@@ -69,7 +69,7 @@ def test_claude_keeps_existing_settings_and_backs_up(isolated_env):
     (b,) = backups(settings_path)
     assert json.loads(b.read_text()) == existing
     assert len(backups(claude_json)) == 1
-    assert "backup: ~/.claude/settings.json.bak-agentrecall-" in out
+    assert "backup: ~/.claude/settings.json.bak-sessionrecall-" in out
 
 
 def test_claude_is_idempotent(isolated_env):
@@ -85,7 +85,7 @@ def test_claude_is_idempotent(isolated_env):
 
 def test_claude_print_writes_nothing(isolated_env):
     out = run("claude", "--print")
-    assert "nothing written" in out and '"AGENTRECALL_BACKGROUND": "1"' in out
+    assert "nothing written" in out and '"SESSIONRECALL_BACKGROUND": "1"' in out
     assert f"claude mcp add --scope user recall -- {RECALL} mcp" in out
     assert not (isolated_env / ".claude").exists() and not (isolated_env / ".claude.json").exists()
 
@@ -108,7 +108,7 @@ def test_claude_refuses_foreign_skill_and_bad_json(isolated_env):
     skill = isolated_env / ".claude/skills/recall/SKILL.md"
     skill.parent.mkdir(parents=True)
     skill.write_text("my own skill\n")
-    with pytest.raises(SystemExit, match="not installed by agentrecall"):
+    with pytest.raises(SystemExit, match="not installed by sessionrecall"):
         run("claude")
     assert skill.read_text() == "my own skill\n"
     run("claude", "--no-skill")  # the rest still installs

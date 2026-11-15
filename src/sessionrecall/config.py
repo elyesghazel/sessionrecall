@@ -1,9 +1,9 @@
-"""Configuration: ~/.config/agentrecall/config.toml, with defaults for everything.
+"""Configuration: ~/.config/sessionrecall/config.toml, with defaults for everything.
 
 Example config.toml:
 
     model = "multilingual-mini"       # a preset below or any fastembed model name
-    # cache_dir = "~/.cache/agentrecall"
+    # cache_dir = "~/.cache/sessionrecall"
     # threads = 4
 
     # Installed agents are found on their own; a table configures one.
@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-APP = "agentrecall"
+APP = "sessionrecall"
 
 
 class ConfigError(Exception):
@@ -65,7 +65,7 @@ def _path(value: str) -> Path:
 
 
 def default_config_path() -> Path:
-    if env := os.environ.get("AGENTRECALL_CONFIG"):
+    if env := os.environ.get("SESSIONRECALL_CONFIG"):
         return _path(env)
     return _xdg("XDG_CONFIG_HOME", ".config") / APP / "config.toml"
 

@@ -3,9 +3,9 @@ import sys
 
 import pytest
 
-from agentrecall import cli
-from agentrecall.sources import short_id
 from conftest import BACKUP, DARK_MODE, MIGRATION, MONITORING, RATE_LIMIT, RSS, WEBP, WEBSHOP
+from sessionrecall import cli
+from sessionrecall.sources import short_id
 
 
 def session_order(out: str) -> list[str]:

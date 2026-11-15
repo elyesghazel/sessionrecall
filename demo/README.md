@@ -7,7 +7,7 @@ No real transcript is involved.
 
 ```sh
 python3 demo/build_corpus.py   # regenerate corpus/ after editing the sessions in it
-source demo/env.sh             # a shell whose HOME is the corpus (default /tmp/agentrecall-demo)
+source demo/env.sh             # a shell whose HOME is the corpus (default /tmp/sessionrecall-demo)
 recall why did we drop the admin dashboard
 
 vhs demo/demo.tape             # docs/demo.gif (needs vhs, ttyd, ffmpeg)

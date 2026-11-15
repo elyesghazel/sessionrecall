@@ -1,9 +1,9 @@
-# agentrecall
+# sessionrecall
 
 Search your past Claude Code, Codex and OpenCode sessions by meaning, on your own machine.
 
-[![CI](https://github.com/elyesghazel/agentrecall/actions/workflows/ci.yml/badge.svg)](https://github.com/elyesghazel/agentrecall/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/agentrecall.svg)](https://pypi.org/project/agentrecall/)
+[![CI](https://github.com/elyesghazel/sessionrecall/actions/workflows/ci.yml/badge.svg)](https://github.com/elyesghazel/sessionrecall/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/sessionrecall.svg)](https://pypi.org/project/sessionrecall/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ![recall finding a paraphrased session, filtering by agent, printing a digest and answering an agent over MCP](docs/demo.gif)
@@ -30,11 +30,11 @@ work that was already done.
 ## Install
 
 ```sh
-uv tool install 'agentrecall[mcp]'    # or: pipx install 'agentrecall[mcp]'
+uv tool install 'sessionrecall[mcp]'    # or: pipx install 'sessionrecall[mcp]'
 ```
 
 Python 3.11 or newer, Linux or macOS. The `mcp` extra is only needed for `recall mcp`;
-`uv tool install agentrecall` gives you the CLI alone. The first search downloads the
+`uv tool install sessionrecall` gives you the CLI alone. The first search downloads the
 embedding model once (~240 MB, see [Models](#models)).
 
 ## Quickstart
@@ -119,7 +119,7 @@ recall install opencode   # mcp.servers.recall in ~/.config/opencode/opencode.js
 ```
 
 Each one prints what it changes and backs up every file it rewrites to
-`<file>.bak-agentrecall-<time>`. Running it again changes nothing. `--print` shows the
+`<file>.bak-sessionrecall-<time>`. Running it again changes nothing. `--print` shows the
 plan and the snippets without writing; `--uninstall` removes exactly what was added.
 `--command PATH` puts another `recall` executable into the config (default: the one
 you ran). Restart the agent afterwards.
@@ -150,7 +150,7 @@ Or add it by hand:
 
 `recall install claude` also adds, in `~/.claude/settings.json` (or `$CLAUDE_CONFIG_DIR`):
 
-- **Background search.** It sets `AGENTRECALL_BACKGROUND=1`, so `recall <query>` run by
+- **Background search.** It sets `SESSIONRECALL_BACKGROUND=1`, so `recall <query>` run by
   the agent inside a session returns at once and searches detached (the model load and
   new embeddings can take a few seconds). The `recall-inject` hook (PostToolUse and Stop)
   then attaches the results, headed `[recall results for: ...]`, to the next tool result,
@@ -196,12 +196,12 @@ on the next run.
 ## Configure
 
 Everything has a default; the config file is optional:
-`~/.config/agentrecall/config.toml` (or `$AGENTRECALL_CONFIG`, or `--config`).
+`~/.config/sessionrecall/config.toml` (or `$SESSIONRECALL_CONFIG`, or `--config`).
 
 ```toml
 model = "multilingual-mini"        # a preset or any fastembed model name
-# cache_dir = "~/.cache/agentrecall"     index + model files ($XDG_CACHE_HOME)
-# state_dir = "~/.local/state/agentrecall"   list of forgotten sessions
+# cache_dir = "~/.cache/sessionrecall"     index + model files ($XDG_CACHE_HOME)
+# state_dir = "~/.local/state/sessionrecall"   list of forgotten sessions
 # threads = 4
 # inline_max = 150                 # new chunks a search embeds itself
 
@@ -225,8 +225,8 @@ model = "multilingual-mini"        # a preset or any fastembed model name
 
 | environment variable | effect |
 |---|---|
-| `AGENTRECALL_CONFIG` | config file path |
-| `AGENTRECALL_BACKGROUND=1` | `recall <query>` searches in the background (set by `recall install claude`) |
+| `SESSIONRECALL_CONFIG` | config file path |
+| `SESSIONRECALL_BACKGROUND=1` | `recall <query>` searches in the background (set by `recall install claude`) |
 | `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_DATA_HOME` | where the agents keep their sessions |
 | `XDG_CACHE_HOME`, `XDG_STATE_HOME`, `XDG_CONFIG_HOME` | where recall keeps its index, state and config |
 
@@ -243,10 +243,10 @@ are good at what they set out to do; the difference is mostly scope.
 | [claude-code-history-viewer](https://github.com/jhlee0409/claude-code-history-viewer) | Claude Code, Codex, OpenCode and more | browse and keyword search, usage stats | - | local desktop/web app |
 | [cc-conversation-search](https://github.com/akatz-ai/cc-conversation-search), [claude-code-sessions](https://github.com/kmizzi/claude-code-sessions), lore, cc-history and similar | Claude Code | by meaning or hybrid; several ship an MCP server or skill | yes (most) | local |
 | Code-graph / RAG tools such as graphify | - | your code and docs, not conversations | yes | local |
-| **agentrecall** | Claude Code, Codex, OpenCode | by meaning plus exact and regex, date and agent filters | MCP server, Claude Code skill and hook | local CLI |
+| **sessionrecall** | Claude Code, Codex, OpenCode | by meaning plus exact and regex, date and agent filters | MCP server, Claude Code skill and hook | local CLI |
 
 If you only use Claude Code and want a browser UI, one of the viewers may suit you
-better. agentrecall is for searching all three agents from one CLI and from inside the
+better. sessionrecall is for searching all three agents from one CLI and from inside the
 agent, with secrets kept out of the results.
 
 ## FAQ
@@ -270,7 +270,7 @@ in another. `english-small` is smaller if all your sessions are in English.
 
 **Can I see what is indexed?**
 `recall --list` shows every session it knows, `recall --show <id>` prints one. The index
-is a SQLite file under `~/.cache/agentrecall/`; delete it to start over.
+is a SQLite file under `~/.cache/sessionrecall/`; delete it to start over.
 
 **Windows?**
 Untested. The sources follow each agent's documented paths, so it may work; reports welcome.
@@ -282,7 +282,7 @@ A source is one module that turns the agent's storage into sessions and turns; s
 ## How it works
 
 Each source turns an agent's storage into sessions and turns
-(`agentrecall.sources.base.Source`: `sessions()` and `turns(path, offset)`). The indexer
+(`sessionrecall.sources.base.Source`: `sessions()` and `turns(path, offset)`). The indexer
 reads only what was appended since the last run (by byte offset, or message count for
 OpenCode), splits turns into overlapping chunks, embeds them and stores unit vectors in
 SQLite. A search embeds the query, ranks all chunks by cosine similarity plus a small
@@ -299,7 +299,7 @@ bonus for literal query words, and shows the best three chunks of each top sessi
 ```sh
 uv sync
 uv run pytest                                     # fast, uses a fake embedder
-AGENTRECALL_TEST_MODEL=1 uv run pytest -m model   # also runs the real model (downloads it)
+SESSIONRECALL_TEST_MODEL=1 uv run pytest -m model   # also runs the real model (downloads it)
 uvx ruff check .
 ```
 

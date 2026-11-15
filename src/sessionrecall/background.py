@@ -1,7 +1,7 @@
 """Background search inside Claude Code, and the `recall-inject` hook that delivers it.
 
 A semantic search can take a few seconds (the model loads, new turns get embedded).
-Inside a Claude Code session, with `AGENTRECALL_BACKGROUND=1` (set by `recall install
+Inside a Claude Code session, with `SESSIONRECALL_BACKGROUND=1` (set by `recall install
 claude`), `recall <query>` returns at once and runs the search detached. The output
 lands in `<cache_dir>/inbox/<session-id>/<n>.txt` (`.part` while running), and the
 `recall-inject` hook hands it to the agent:
@@ -25,7 +25,7 @@ import sys
 import time
 from pathlib import Path
 
-ENV = "AGENTRECALL_BACKGROUND"
+ENV = "SESSIONRECALL_BACKGROUND"
 SESSION_ENV = "CLAUDE_CODE_SESSION_ID"
 STOP_WAIT_S = 30
 STALE_S = 300  # a .part older than this belongs to a worker that died
@@ -36,7 +36,7 @@ _SAFE_ID = re.compile(r"[\w-]{1,128}")
 def inbox(session_id: str) -> Path | None:
     if not _SAFE_ID.fullmatch(session_id or ""):
         return None
-    from agentrecall.config import load_config
+    from sessionrecall.config import load_config
 
     return load_config().cache_dir / "inbox" / session_id
 
@@ -53,14 +53,14 @@ def spawn(argv: list[str], terms: list[str]) -> int:
     """Start the search detached and tell the agent where the results will show up."""
     box = inbox(os.environ.get(SESSION_ENV, ""))
     if box is None:
-        from agentrecall import cli
+        from sessionrecall import cli
 
         return cli.main([*argv, "--wait"])
     box.mkdir(parents=True, exist_ok=True)
     part = box / f"{time.time_ns()}.part"
     query = " ".join(terms)
     subprocess.Popen(
-        [sys.executable, "-m", "agentrecall.background", str(part), query, *argv],
+        [sys.executable, "-m", "sessionrecall.background", str(part), query, *argv],
         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         start_new_session=True,
     )
@@ -75,8 +75,8 @@ def spawn(argv: list[str], terms: list[str]) -> int:
 
 def _worker(part: Path, query: str, argv: list[str]) -> None:
     """Run the search in the foreground into `part`, then rename it to .txt."""
-    from agentrecall import cli
-    from agentrecall.redact import RedactingWriter
+    from sessionrecall import cli
+    from sessionrecall.redact import RedactingWriter
 
     with part.open("w") as f:
         f.write(f"[recall results for: {query}]\n")

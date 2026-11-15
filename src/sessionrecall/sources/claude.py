@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from agentrecall.sources.base import Session, Source, Turn, read_new_lines, tilde
+from sessionrecall.sources.base import Session, Source, Turn, read_new_lines, tilde
 
 # Context the harness injects into user turns; not something anyone said.
 NOISE = re.compile(

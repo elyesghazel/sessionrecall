@@ -6,7 +6,8 @@ All notable changes are listed here. The format follows
 
 ## [0.1.0] - unreleased
 
-First public release.
+First public release. The project was called `agentrecall` before release and was
+renamed because PyPI rejects that name.
 
 ### Added
 
@@ -23,4 +24,4 @@ First public release.
 - `recall install claude|codex|opencode` with `--print` and `--uninstall`; for Claude Code
   also a `/recall` skill and background search through the `recall-inject` hook.
 
-[0.1.0]: https://github.com/elyesghazel/agentrecall/releases/tag/v0.1.0
+[0.1.0]: https://github.com/elyesghazel/sessionrecall/releases/tag/v0.1.0

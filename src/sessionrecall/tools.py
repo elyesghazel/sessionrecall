@@ -2,7 +2,7 @@
 
 They reuse the CLI's commands and capture what those print, so an agent sees exactly
 what a person would, redacted the same way, but cut to a size that fits in a context
-window. This module needs no MCP SDK; `agentrecall.mcp_server` wraps it.
+window. This module needs no MCP SDK; `sessionrecall.mcp_server` wraps it.
 """
 
 from __future__ import annotations
@@ -13,13 +13,13 @@ import threading
 from collections.abc import Callable
 from functools import cached_property
 
-from agentrecall.cli import App
-from agentrecall.config import Config, load_config
-from agentrecall.index import Embedder, FastEmbedder
-from agentrecall.redact import RedactingWriter, redact
-from agentrecall.search import Filters
-from agentrecall.sources import REGISTRY
-from agentrecall.timeutil import DateFilter
+from sessionrecall.cli import App
+from sessionrecall.config import Config, load_config
+from sessionrecall.index import Embedder, FastEmbedder
+from sessionrecall.redact import RedactingWriter, redact
+from sessionrecall.search import Filters
+from sessionrecall.sources import REGISTRY
+from sessionrecall.timeutil import DateFilter
 
 MAX_CHARS = 12_000  # hard cap on one tool result
 SEARCH_LIMIT, LIST_LIMIT, EXACT_LIMIT = 5, 20, 20

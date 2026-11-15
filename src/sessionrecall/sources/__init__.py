@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from agentrecall.config import Config, ConfigError
-from agentrecall.sources.base import Role, Session, Source, Turn, id_matches, short_id
-from agentrecall.sources.claude import ClaudeCodeSource
-from agentrecall.sources.codex import CodexSource
-from agentrecall.sources.opencode import OpenCodeSource
+from sessionrecall.config import Config, ConfigError
+from sessionrecall.sources.base import Role, Session, Source, Turn, id_matches, short_id
+from sessionrecall.sources.claude import ClaudeCodeSource
+from sessionrecall.sources.codex import CodexSource
+from sessionrecall.sources.opencode import OpenCodeSource
 
 REGISTRY: dict[str, type[Source]] = {
     ClaudeCodeSource.name: ClaudeCodeSource,

@@ -15,8 +15,8 @@ from typing import Protocol
 
 import numpy as np
 
-from agentrecall.sources import Source, all_sessions
-from agentrecall.store import Chunk, Store
+from sessionrecall.sources import Source, all_sessions
+from sessionrecall.store import Chunk, Store
 
 
 class Embedder(Protocol):

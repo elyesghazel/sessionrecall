@@ -2,18 +2,18 @@ from pathlib import Path
 
 import pytest
 
-from agentrecall.config import MODELS, Config, ConfigError, config_from_dict, load_config
-from agentrecall.sources import build_sources
-from agentrecall.sources.claude import ClaudeCodeSource
-from agentrecall.sources.codex import CodexSource
-from agentrecall.sources.opencode import OpenCodeSource
+from sessionrecall.config import MODELS, Config, ConfigError, config_from_dict, load_config
+from sessionrecall.sources import build_sources
+from sessionrecall.sources.claude import ClaudeCodeSource
+from sessionrecall.sources.codex import CodexSource
+from sessionrecall.sources.opencode import OpenCodeSource
 
 
 def test_defaults_follow_xdg(isolated_env):
     cfg = load_config()
     assert cfg.model_id == MODELS["multilingual-mini"].id
-    assert cfg.index_path == isolated_env / ".cache" / "agentrecall" / "index.sqlite"
-    assert cfg.forgotten_path == isolated_env / ".local" / "state" / "agentrecall" / "forgotten"
+    assert cfg.index_path == isolated_env / ".cache" / "sessionrecall" / "index.sqlite"
+    assert cfg.forgotten_path == isolated_env / ".local" / "state" / "sessionrecall" / "forgotten"
     assert cfg.sources == {}
 
 
@@ -21,7 +21,7 @@ def test_file_and_env_override(isolated_env, monkeypatch, tmp_path):
     path = tmp_path / "custom.toml"
     path.write_text('model = "jina-de"\ncache_dir = "~/elsewhere"\nthreads = 2\n'
                     '[titles]\ncommand = "my-titles --json no"\n')
-    monkeypatch.setenv("AGENTRECALL_CONFIG", str(path))
+    monkeypatch.setenv("SESSIONRECALL_CONFIG", str(path))
     cfg = load_config()
     assert cfg.model_id == "jinaai/jina-embeddings-v2-base-de"
     assert cfg.cache_dir == isolated_env / "elsewhere"
