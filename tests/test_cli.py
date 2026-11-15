@@ -5,7 +5,6 @@ import pytest
 
 from agentrecall import cli
 from agentrecall.sources import short_id
-
 from conftest import BACKUP, DARK_MODE, MIGRATION, MONITORING, RATE_LIMIT, RSS, WEBP, WEBSHOP
 
 
@@ -67,7 +66,7 @@ def test_bad_date(recall):
 
 def test_list(recall):
     lines = recall("--list").splitlines()[1:]
-    assert [l.split()[3] for l in lines] == [BACKUP[:8], MONITORING[:8], WEBSHOP[:8]]
+    assert [row.split()[3] for row in lines] == [BACKUP[:8], MONITORING[:8], WEBSHOP[:8]]
     assert "Wie richte ich" in lines[0]
 
 
@@ -190,12 +189,13 @@ def test_every_agent_is_searchable(recall, all_agents):
 def test_agent_filter(recall, all_agents):
     out = recall("database migration column", "--agent", "codex")
     assert set(session_order(out)) <= {RATE_LIMIT[:8], MIGRATION[:8]}
-    assert set(session_order(recall("the", "--agent", "opencode", "-n", "20"))) == {short_id(WEBP), short_id(RSS), short_id(DARK_MODE)}
+    opencode = set(session_order(recall("the", "--agent", "opencode", "-n", "20")))
+    assert opencode == {short_id(WEBP), short_id(RSS), short_id(DARK_MODE)}
     assert session_order(recall("--exact", "the", "--agent", "claude", "-n", "100"))
     assert not {RATE_LIMIT[:8], short_id(WEBP)} & set(session_order(recall("--exact", "the", "--agent", "claude", "-n", "100")))
     lines = recall("--list", "--agent", "codex").splitlines()[1:]
-    assert [l.split()[3] for l in lines] == [RATE_LIMIT[:8], MIGRATION[:8]]
-    assert all(l.split()[4] == "codex" for l in lines)
+    assert [row.split()[3] for row in lines] == [RATE_LIMIT[:8], MIGRATION[:8]]
+    assert all(row.split()[4] == "codex" for row in lines)
     with pytest.raises(SystemExit, match="no session"):
         recall("--show", short_id(WEBP), "--agent", "codex")
     with pytest.raises(SystemExit):
@@ -204,8 +204,8 @@ def test_agent_filter(recall, all_agents):
 
 def test_list_and_show_other_agents(recall, all_agents):
     lines = recall("--list").splitlines()[1:]
-    assert [l.split()[3] for l in lines][:2] == [BACKUP[:8], short_id(RSS)]
-    assert any(l.split()[4] == "opencode" and "/srv/demo/blog" in l for l in lines)
+    assert [row.split()[3] for row in lines][:2] == [BACKUP[:8], short_id(RSS)]
+    assert any(row.split()[4] == "opencode" and "/srv/demo/blog" in row for row in lines)
     out = recall("--show", WEBP)
     assert out.startswith(f"# {WEBP} (/srv/demo/blog)")
     assert recall("--show", short_id(WEBP)).startswith(f"# {WEBP} ")  # the shown id works too

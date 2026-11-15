@@ -3,7 +3,6 @@ import json
 from agentrecall.index import chunk_text, update_index
 from agentrecall.sources.claude import ClaudeCodeSource
 from agentrecall.store import Store
-
 from conftest import BACKUP, MONITORING, WEBSHOP
 
 CHUNKING = (1000, 200)

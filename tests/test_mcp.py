@@ -9,9 +9,9 @@ import sys
 from pathlib import Path
 
 import pytest
-from conftest import BACKUP, MIGRATION, MONITORING, RATE_LIMIT, WEBP, WEBSHOP, HashEmbedder
 
 from agentrecall.tools import MAX_CHARS, ToolError, Tools
+from conftest import BACKUP, MIGRATION, MONITORING, RATE_LIMIT, WEBP, WEBSHOP, HashEmbedder
 
 pytest.importorskip("mcp")
 

@@ -9,7 +9,6 @@ import pytest
 from agentrecall import cli
 from agentrecall.config import MODELS
 from agentrecall.index import FastEmbedder
-
 from conftest import BACKUP, MONITORING
 
 pytestmark = [
