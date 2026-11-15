@@ -1,6 +1,6 @@
 [project]
 name = "agentrecall"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Semantic search over your past coding-agent sessions. Local, private, no cloud."
 readme = "README.md"
 license = "MIT"
