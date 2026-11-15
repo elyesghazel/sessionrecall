@@ -1,0 +1,36 @@
+[project]
+name = "agentrecall"
+version = "0.1.0.dev0"
+description = "Semantic search over your past coding-agent sessions. Local, private, no cloud."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "fastembed>=0.5",
+    "numpy",
+]
+keywords = ["claude-code", "codex", "opencode", "semantic-search", "embeddings", "cli"]
+classifiers = [
+    "Environment :: Console",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development",
+    "Topic :: Text Processing :: Indexing",
+]
+
+[project.scripts]
+recall = "agentrecall.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentrecall"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["model: downloads and runs the real embedding model (set AGENTRECALL_TEST_MODEL=1)"]
