@@ -3,12 +3,19 @@
 Search your past Claude Code, Codex and OpenCode sessions by meaning, on your own machine.
 
 [![CI](https://github.com/elyesghazel/sessionrecall/actions/workflows/ci.yml/badge.svg)](https://github.com/elyesghazel/sessionrecall/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/sessionrecall.svg)](https://pypi.org/project/sessionrecall/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ![recall finding a paraphrased session, filtering by agent, printing a digest and answering an agent over MCP](docs/demo.gif)
 
 <sub>Recorded against the made-up sessions in [`demo/`](demo/), not real ones.</sub>
+
+> **This is a small portfolio project, not a product.** I built it for my own server and
+> use it there every day. Before releasing it I found
+> [recall-agents](https://github.com/alirng/recall) and
+> [session-recall](https://pypi.org/project/session-recall/), which do this and more and
+> are further along. If you want a full tool, use recall-agents. sessionrecall is here to
+> read: about 2,400 lines of Python, one SQLite file, no LLM job. See
+> [How it compares](#how-it-compares).
 
 ## The problem
 
@@ -29,13 +36,18 @@ work that was already done.
 
 ## Install
 
+Install it from GitHub:
+
 ```sh
-uv tool install 'sessionrecall[mcp]'    # or: pipx install 'sessionrecall[mcp]'
+uv tool install 'sessionrecall[mcp] @ git+https://github.com/elyesghazel/sessionrecall'
+# or: pipx install 'sessionrecall[mcp] @ git+https://github.com/elyesghazel/sessionrecall'
 ```
 
 Python 3.11 or newer, Linux or macOS. The `mcp` extra is only needed for `recall mcp`;
-`uv tool install sessionrecall` gives you the CLI alone. The first search downloads the
-embedding model once (~240 MB, see [Models](#models)).
+drop `[mcp]` for the CLI alone. From a local checkout, `uv tool install '.[mcp]'` does the
+same. The first search downloads the embedding model once (~240 MB, see [Models](#models)).
+
+The command is called `recall`, like recall-agents' CLI, so do not install both.
 
 ## Quickstart
 
@@ -232,22 +244,37 @@ model = "multilingual-mini"        # a preset or any fastembed model name
 
 ## How it compares
 
-Other tools in this space, as of November 2026, described from their own READMEs. Most
-are good at what they set out to do; the difference is mostly scope.
+Two projects cover the same ground and are further along. Described from their own
+READMEs, as of November 2026:
 
-| | agents | finds | agent can call it | runs |
-|---|---|---|---|---|
-| `claude --resume`, `codex resume` | one each | picks recent sessions by title or first message | - | built in |
-| `grep` / `rg` over the transcripts | any | exact words | via the shell | local |
-| [fast-resume](https://github.com/angristan/fast-resume) | Claude Code, Codex, OpenCode, Copilot and more | full text, fuzzy; resumes the session | - | local TUI |
-| [claude-code-history-viewer](https://github.com/jhlee0409/claude-code-history-viewer) | Claude Code, Codex, OpenCode and more | browse and keyword search, usage stats | - | local desktop/web app |
-| [cc-conversation-search](https://github.com/akatz-ai/cc-conversation-search), [claude-code-sessions](https://github.com/kmizzi/claude-code-sessions), lore, cc-history and similar | Claude Code | by meaning or hybrid; several ship an MCP server or skill | yes (most) | local |
-| Code-graph / RAG tools such as graphify | - | your code and docs, not conversations | yes | local |
-| **sessionrecall** | Claude Code, Codex, OpenCode | by meaning plus exact and regex, date and agent filters | MCP server, Claude Code skill and hook | local CLI |
+- **[recall-agents](https://github.com/alirng/recall)** (`recall` on the command line too)
+  reads the history of Claude Code, Codex, Cursor and about 30 more agents, OpenCode
+  among them. It has MCP tools, a `/recall` skill and hooks, keyword and embedding search,
+  published benchmarks, and nightly memory notes that a model you choose writes into a
+  git repository of markdown. It also follows projects across clones and worktrees and
+  warns when two agents edit the same file. If you want one tool for this, use it.
+- **[session-recall](https://pypi.org/project/session-recall/)** is for Claude Code only.
+  It slices and greps the JSONL transcripts over MCP and a CLI, and its main job is
+  recovery after compaction: a `SessionStart` hook that puts the prompts, changed files,
+  commands and errors since the compaction back into context.
 
-If you only use Claude Code and want a browser UI, one of the viewers may suit you
-better. sessionrecall is for searching all three agents from one CLI and from inside the
-agent, with secrets kept out of the results.
+What sessionrecall does differently is small, and none of it is a feature the others
+lack:
+
+- **Small enough to read.** About 2,400 lines of Python. The index is one SQLite file,
+  and search is a brute-force cosine similarity over a numpy array, with no vector
+  database or server.
+- **No LLM job at all.** Nothing summarises your sessions or writes notes; it only
+  embeds, stores and searches. recall-agents also searches without LLM calls, but its
+  memory notes need a model.
+- **Used daily.** It has run on my own server since late October 2026, searched by me and
+  by the agents working there.
+
+Other tools nearby: `claude --resume` and `codex resume` pick recent sessions by title,
+`grep` finds exact words, [fast-resume](https://github.com/angristan/fast-resume) and
+[claude-code-history-viewer](https://github.com/jhlee0409/claude-code-history-viewer)
+browse and search history in a TUI or app, and code-graph tools such as graphify index
+your code rather than your conversations.
 
 ## FAQ
 
@@ -273,7 +300,7 @@ in another. `english-small` is smaller if all your sessions are in English.
 is a SQLite file under `~/.cache/sessionrecall/`; delete it to start over.
 
 **Windows?**
-Untested. The sources follow each agent's documented paths, so it may work; reports welcome.
+Untested. The sources follow each agent's documented paths, so it may work.
 
 **My agent is not supported.**
 A source is one module that turns the agent's storage into sessions and turns; see
