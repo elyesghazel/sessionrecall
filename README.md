@@ -7,7 +7,8 @@ words you used. `recall` embeds your session transcripts on your own machine and
 them by meaning: "replaced the status page" finds the session where you "moved
 monitoring to Grafana".
 
-Supported today: **Claude Code**. Codex and OpenCode are next.
+Supported: **Claude Code**, **Codex CLI** and **OpenCode**. Installed agents are found
+automatically.
 
 > Work in progress, not released yet.
 
@@ -30,6 +31,7 @@ recall how did we fix the flaky test   # semantic search
 recall --exact ORDER BY                # turns containing all terms
 recall -r 'pg_(dump|restore)'          # regex
 recall --since 7 deploy                # only the last 7 days
+recall --agent codex rate limit        # only one agent (claude, codex, opencode)
 recall --from 2026-01-05 --to 2026-01-11 backup
 recall --list                          # recent sessions
 recall --show 3f9a1c2e                 # print a session (an id prefix is enough)
@@ -37,11 +39,11 @@ recall --show 3f9a1c2e --digest        # just your turns and the final replies
 recall --forget 3f9a1c2e               # hide a session from recall for good
 ```
 
-Results show the session id, project, local time and age, and the best matching
+Results show the session id, agent, project, local time and age, and the best matching
 snippets:
 
 ```
-== 7b2d4e6f  /srv/demo/infra  [0.74, best hit 3 days ago]
+== 7b2d4e6f  claude  /srv/demo/infra  [0.74, best hit 3 days ago]
   Thu 2026-01-08 15:00 (3 days ago) user: The old status page keeps breaking. Replace it with ...
   Thu 2026-01-08 15:05 (3 days ago) assi: I removed the status page container and set up Grafana ...
 ```
@@ -80,9 +82,17 @@ model = "multilingual-mini"        # a preset or any fastembed model name
 # threads = 4
 # inline_max = 150                 # new chunks a search embeds itself
 
+# Agents installed here are used without a table. A table configures one;
+# `enabled = false` turns it off.
 [sources.claude]
 # paths = ["~/.claude/projects"]   # default; follows $CLAUDE_CONFIG_DIR
-# enabled = true
+
+[sources.codex]
+# home = "~/.codex"                # default; follows $CODEX_HOME (reads sessions/ and archived_sessions/)
+
+[sources.opencode]
+# data_dir = "~/.local/share/opencode"   # default; follows $XDG_DATA_HOME
+# enabled = false
 
 [titles]
 # Optional: a program that prints "<session-id><TAB><title>" lines, for agents
@@ -100,8 +110,9 @@ model = "multilingual-mini"        # a preset or any fastembed model name
 - `recall --forget <id>` removes a session's chunks from the index and hides it from
   every mode, including turns added later. `--unforget` undoes it, `--forgotten` lists
   them. The transcript file itself is never touched.
-- The session you run recall from (Claude Code sets `CLAUDE_CODE_SESSION_ID`) is left
-  out of search results, so your own question is not the top hit.
+- The session you run recall from (Claude Code sets `CLAUDE_CODE_SESSION_ID`, Codex
+  `CODEX_THREAD_ID`) is left out of search results, so your own question is not the top
+  hit.
 - The index keeps chunks of transcripts deleted since, so search still finds them;
   `--show` cannot print those any more.
 
@@ -109,13 +120,19 @@ model = "multilingual-mini"        # a preset or any fastembed model name
 
 Each source turns an agent's storage into sessions and turns
 (`agentrecall.sources.base.Source`: `sessions()` and `turns(path, offset)`). The indexer
-reads only what was appended since the last run (by byte offset), splits turns into
+reads only what was appended since the last run (by byte offset, or message count for OpenCode), splits turns into
 overlapping chunks, embeds them and stores unit vectors in SQLite. A search embeds the
 query, ranks all chunks by cosine similarity plus a small bonus for literal query words,
 and shows the best three chunks of each top session.
 
 Adding an agent means one module in `src/agentrecall/sources/` and one entry in
-`REGISTRY`.
+`REGISTRY`; see [docs/adding-a-source.md](docs/adding-a-source.md).
+
+| agent | where | what is read |
+|---|---|---|
+| Claude Code | `~/.claude/projects/<project>/<id>.jsonl` | user and assistant text, without tool calls and injected reminders |
+| Codex CLI | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`, `archived_sessions/` | `response_item` messages, without AGENTS.md, environment context, tools and reasoning |
+| OpenCode | `~/.local/share/opencode/opencode.db`, or `storage/` JSON in older versions | text parts of user and assistant messages, without tools, reasoning and synthetic parts |
 
 ## Develop
 
