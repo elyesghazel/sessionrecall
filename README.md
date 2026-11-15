@@ -1,56 +1,90 @@
 # agentrecall
 
-Semantic search over your past coding-agent sessions. Local, private, no cloud.
+Search your past Claude Code, Codex and OpenCode sessions by meaning, on your own machine.
 
-You remember *that* you solved something with your agent a few weeks ago, but not the
-words you used. `recall` embeds your session transcripts on your own machine and finds
-them by meaning: "replaced the status page" finds the session where you "moved
-monitoring to Grafana".
+[![CI](https://github.com/elyesghazel/agentrecall/actions/workflows/ci.yml/badge.svg)](https://github.com/elyesghazel/agentrecall/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/agentrecall.svg)](https://pypi.org/project/agentrecall/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Supported: **Claude Code**, **Codex CLI** and **OpenCode**. Installed agents are found
-automatically.
+![recall finding a paraphrased session, filtering by agent, printing a digest and answering an agent over MCP](docs/demo.gif)
 
-> Work in progress, not released yet.
+<sub>Recorded against the made-up sessions in [`demo/`](demo/), not real ones.</sub>
+
+## The problem
+
+Coding agents start every session from zero. The fix you worked out with Claude Code
+three weeks ago is still on disk, in a transcript, but nothing helps you find it again:
+
+- `claude --resume` and `codex resume` list recent sessions by title or first message.
+  Fine for yesterday, not for "the one where we sorted out the migration lock".
+- `grep` over `~/.claude/projects` finds the words you remember, not the words you used.
+  You search for "dropped the dashboard"; the session said "removed the overview route
+  and replaced it with an ops page".
+- Code-graph and RAG tools (graphify and similar) index your code and docs. Your
+  conversations with the agent, where the reasons and dead ends live, are not in there.
+
+`recall` embeds the transcripts of all three agents locally and searches them by
+meaning. You can run it yourself, or let the agent call it over MCP before it redoes
+work that was already done.
 
 ## Install
 
 ```sh
-uv tool install agentrecall    # or: pipx install agentrecall
-# from a checkout:
-uv tool install .
+uv tool install 'agentrecall[mcp]'    # or: pipx install 'agentrecall[mcp]'
 ```
 
-Python 3.11 or newer. The first search downloads the embedding model once (see
-[Models](#models)).
+Python 3.11 or newer, Linux or macOS. The `mcp` extra is only needed for `recall mcp`;
+`uv tool install agentrecall` gives you the CLI alone. The first search downloads the
+embedding model once (~240 MB, see [Models](#models)).
+
+## Quickstart
+
+```sh
+recall --index                 # embed every session once; later runs only read what is new
+recall how did we fix the flaky test
+```
+
+Then let your agent use it:
+
+```sh
+recall install claude          # MCP server, /recall skill, background search hook
+recall install codex           # [mcp_servers.recall] in ~/.codex/config.toml
+recall install opencode        # mcp.servers.recall in ~/.config/opencode/opencode.json
+```
+
+Each one prints what it changes, backs up every file it rewrites, and does nothing on a
+second run. Add `--print` to see the plan without writing anything. Restart the agent
+afterwards. Details: [Install into an agent](#install-into-an-agent).
 
 ## Use
 
 ```sh
-recall --index                         # embed everything once (later runs only read what is new)
-recall how did we fix the flaky test   # semantic search
+recall how did we fix the flaky test   # by meaning
 recall --exact ORDER BY                # turns containing all terms
 recall -r 'pg_(dump|restore)'          # regex
 recall --since 7 deploy                # only the last 7 days
-recall --agent codex rate limit        # only one agent (claude, codex, opencode)
 recall --from 2026-01-05 --to 2026-01-11 backup
+recall --agent codex rate limit        # one agent: claude, codex or opencode
+recall --role user nginx               # only what you said (or: assistant)
+recall -n 3 ...                        # at most 3 sessions
 recall --list                          # recent sessions
 recall --show 3f9a1c2e                 # print a session (an id prefix is enough)
 recall --show 3f9a1c2e --digest        # just your turns and the final replies
 recall --forget 3f9a1c2e               # hide a session from recall for good
 ```
 
-Results show the session id, agent, project, local time and age, and the best matching
+A search prints each matching session with its id, agent, project, time and the best
 snippets:
 
-```
-== 7b2d4e6f  claude  /srv/demo/infra  [0.74, best hit 3 days ago]
-  Thu 2026-01-08 15:00 (3 days ago) user: The old status page keeps breaking. Replace it with ...
-  Thu 2026-01-08 15:05 (3 days ago) assi: I removed the status page container and set up Grafana ...
-```
+![recall -n 2 why did we drop the admin dashboard](docs/search.png)
 
-Scores are relative: judge by the snippets, not the number.
+The query shares almost no words with the session it finds. Scores are relative: judge by
+the snippets, not the number. `--agent` narrows to one agent's sessions:
 
-A search embeds up to 150 new chunks itself. Keep the index fresh with a timer, e.g. cron:
+![recall --agent codex -n 2 test fails randomly on CI](docs/agent-filter.png)
+
+A search embeds up to 150 new chunks itself, so the index is never far behind. For a
+large backlog, index on a timer, e.g. cron:
 
 ```cron
 */15 * * * * nice -n 19 recall --index
@@ -59,11 +93,11 @@ A search embeds up to 150 new chunks itself. Keep the index fresh with a timer, 
 ## Let your agent search (MCP)
 
 `recall mcp` is a stdio [MCP](https://modelcontextprotocol.io) server, so an agent can
-search its own past sessions. It needs the `mcp` extra:
+search its own past sessions:
 
-```sh
-uv tool install 'agentrecall[mcp]'    # or: pipx install 'agentrecall[mcp]'
-```
+![an agent calling recall.search over MCP](docs/mcp.png)
+
+<sub>The agent in this screenshot is [`demo/bin/demo-agent`](demo/bin/demo-agent): a real MCP call to `recall mcp`, with the agent's sentences scripted.</sub>
 
 Tools (each takes an optional `agent`, a source name such as `claude`):
 
@@ -127,6 +161,24 @@ Or add it by hand:
   and how to search. Skip with `--no-skill`; an existing skill of your own with that
   name is never overwritten.
 
+## Privacy
+
+- **Local only.** Transcripts are read where the agents left them, the model runs on
+  your CPU, and the index is a SQLite file in your cache dir. The one network request is
+  the model download from Hugging Face on first use; after that recall works offline.
+- **Secrets are redacted on output.** API keys, tokens, bearer headers, `password=...`
+  values, URL credentials and private keys are printed as `[REDACTED]` by the CLI and the
+  MCP server, so a search result never carries a secret into another session. The index
+  itself keeps the original text.
+- **Forget a session.** `recall --forget <id>` removes its chunks from the index and hides
+  it from every mode, including turns added later. `--unforget` undoes it, `--forgotten`
+  lists them. The transcript file itself is never touched.
+- **Your own question is not the top hit.** The session you run recall from (Claude Code
+  sets `CLAUDE_CODE_SESSION_ID`, Codex `CODEX_THREAD_ID`) is left out of the results.
+- **Deleted transcripts stay findable.** The index keeps chunks of transcripts deleted
+  since (Claude Code removes old ones after `cleanupPeriodDays`), so search still finds
+  them; `--show` cannot print them any more. `--forget` them if that is not what you want.
+
 ## Models
 
 Any [fastembed](https://github.com/qdrant/fastembed) text model works. Presets:
@@ -171,33 +223,70 @@ model = "multilingual-mini"        # a preset or any fastembed model name
 # command = ["my-session-titles"]
 ```
 
-## Privacy
+| environment variable | effect |
+|---|---|
+| `AGENTRECALL_CONFIG` | config file path |
+| `AGENTRECALL_BACKGROUND=1` | `recall <query>` searches in the background (set by `recall install claude`) |
+| `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_DATA_HOME` | where the agents keep their sessions |
+| `XDG_CACHE_HOME`, `XDG_STATE_HOME`, `XDG_CONFIG_HOME` | where recall keeps its index, state and config |
 
-- Everything stays on your machine: transcripts are read locally, the model runs
-  locally, the index is a SQLite file in your cache dir.
-- Output is redacted: API keys, tokens, bearer headers, `password=...` values, URL
-  credentials and private keys are printed as `[REDACTED]`, so a search result never
-  carries a secret into another session. The index itself keeps the original text.
-- `recall --forget <id>` removes a session's chunks from the index and hides it from
-  every mode, including turns added later. `--unforget` undoes it, `--forgotten` lists
-  them. The transcript file itself is never touched.
-- The session you run recall from (Claude Code sets `CLAUDE_CODE_SESSION_ID`, Codex
-  `CODEX_THREAD_ID`) is left out of search results, so your own question is not the top
-  hit.
-- The index keeps chunks of transcripts deleted since, so search still finds them;
-  `--show` cannot print those any more.
+## How it compares
+
+Other tools in this space, as of November 2026, described from their own READMEs. Most
+are good at what they set out to do; the difference is mostly scope.
+
+| | agents | finds | agent can call it | runs |
+|---|---|---|---|---|
+| `claude --resume`, `codex resume` | one each | picks recent sessions by title or first message | - | built in |
+| `grep` / `rg` over the transcripts | any | exact words | via the shell | local |
+| [fast-resume](https://github.com/angristan/fast-resume) | Claude Code, Codex, OpenCode, Copilot and more | full text, fuzzy; resumes the session | - | local TUI |
+| [claude-code-history-viewer](https://github.com/jhlee0409/claude-code-history-viewer) | Claude Code, Codex, OpenCode and more | browse and keyword search, usage stats | - | local desktop/web app |
+| [cc-conversation-search](https://github.com/akatz-ai/cc-conversation-search), [claude-code-sessions](https://github.com/kmizzi/claude-code-sessions), lore, cc-history and similar | Claude Code | by meaning or hybrid; several ship an MCP server or skill | yes (most) | local |
+| Code-graph / RAG tools such as graphify | - | your code and docs, not conversations | yes | local |
+| **agentrecall** | Claude Code, Codex, OpenCode | by meaning plus exact and regex, date and agent filters | MCP server, Claude Code skill and hook | local CLI |
+
+If you only use Claude Code and want a browser UI, one of the viewers may suit you
+better. agentrecall is for searching all three agents from one CLI and from inside the
+agent, with secrets kept out of the results.
+
+## FAQ
+
+**Does anything leave my machine?**
+No. Only the model is downloaded, once. There is no telemetry and no API key.
+
+**How fast is it?**
+The first `recall --index` embeds every session on the CPU, which takes a while for months
+of history; run it once in the background. After that a search takes about two seconds,
+most of it loading the model, plus whatever new turns it embeds on the way.
+
+**Why not just ask the agent to grep its transcripts?**
+It can, and for an error message you remember word for word that works (`recall --exact`
+does the same, faster). Searching by meaning is for the times you remember what happened
+but not how it was phrased.
+
+**Does it find sessions in other languages?**
+The default model covers about 50 languages, and a query in one language finds sessions
+in another. `english-small` is smaller if all your sessions are in English.
+
+**Can I see what is indexed?**
+`recall --list` shows every session it knows, `recall --show <id>` prints one. The index
+is a SQLite file under `~/.cache/agentrecall/`; delete it to start over.
+
+**Windows?**
+Untested. The sources follow each agent's documented paths, so it may work; reports welcome.
+
+**My agent is not supported.**
+A source is one module that turns the agent's storage into sessions and turns; see
+[docs/adding-a-source.md](docs/adding-a-source.md).
 
 ## How it works
 
 Each source turns an agent's storage into sessions and turns
 (`agentrecall.sources.base.Source`: `sessions()` and `turns(path, offset)`). The indexer
-reads only what was appended since the last run (by byte offset, or message count for OpenCode), splits turns into
-overlapping chunks, embeds them and stores unit vectors in SQLite. A search embeds the
-query, ranks all chunks by cosine similarity plus a small bonus for literal query words,
-and shows the best three chunks of each top session.
-
-Adding an agent means one module in `src/agentrecall/sources/` and one entry in
-`REGISTRY`; see [docs/adding-a-source.md](docs/adding-a-source.md).
+reads only what was appended since the last run (by byte offset, or message count for
+OpenCode), splits turns into overlapping chunks, embeds them and stores unit vectors in
+SQLite. A search embeds the query, ranks all chunks by cosine similarity plus a small
+bonus for literal query words, and shows the best three chunks of each top session.
 
 | agent | where | what is read |
 |---|---|---|
@@ -209,12 +298,14 @@ Adding an agent means one module in `src/agentrecall/sources/` and one entry in
 
 ```sh
 uv sync
-uv run pytest                                  # fast, uses a fake embedder
+uv run pytest                                     # fast, uses a fake embedder
 AGENTRECALL_TEST_MODEL=1 uv run pytest -m model   # also runs the real model (downloads it)
+uvx ruff check .
 ```
 
 Tests run against hand-written fake sessions in `tests/fixtures/` with a temporary
-`HOME`; they never read your real transcripts.
+`HOME`; they never read your real transcripts. The demo recordings are rebuilt from
+[`demo/`](demo/) with [vhs](https://github.com/charmbracelet/vhs).
 
 ## License
 
