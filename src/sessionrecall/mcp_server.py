@@ -1,6 +1,6 @@
 """`recall mcp`: a stdio MCP server, so agents can search their own past sessions.
 
-Needs the optional extra: `uv tool install 'sessionrecall[mcp]'`. Every result passes
+Needs the optional `mcp` extra (see the README's Install section). Every result passes
 through the same secret redaction as the CLI and is cut to fit an agent's context.
 """
 
@@ -26,7 +26,8 @@ def build_server(tools: Tools):
         from mcp.server.mcpserver import MCPServer
     except ImportError:
         raise SystemExit(
-            "recall mcp needs the MCP SDK: uv tool install 'sessionrecall[mcp]' (or pip install 'sessionrecall[mcp]')"
+            "recall mcp needs the MCP SDK: reinstall with the extra, "
+            "uv tool install 'sessionrecall[mcp] @ git+https://github.com/elyesghazel/sessionrecall'"
         ) from None
     from pydantic import Field
 
