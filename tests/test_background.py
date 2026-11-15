@@ -9,9 +9,9 @@ import os
 import time
 
 import pytest
-from conftest import MONITORING, HashEmbedder
 
 from agentrecall import background, cli
+from conftest import MONITORING, HashEmbedder
 
 SID = "11111111-2222-4333-8444-555555555555"
 
