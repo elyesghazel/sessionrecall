@@ -12,6 +12,10 @@
   recall --index               embed new turns (run it from cron or a timer)
   recall --forget [<id>]       hide a session from recall for good (default: this one)
   recall --unforget <id>       undo that;  recall --forgotten  lists them
+  recall --wait <query...>     search in the foreground even when background search is on
+
+  recall mcp                   stdio MCP server (search, list_sessions, show_session)
+  recall install claude|codex|opencode [--print] [--uninstall]   wire recall into an agent
 
 Everything recall prints passes through secret redaction. The index lives in the cache
 dir and keeps chunks of transcripts deleted since, so search still finds them.
@@ -28,7 +32,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import TextIO
 
-from agentrecall import __version__
+from agentrecall import __version__, background
 from agentrecall.config import Config, ConfigError, load_config
 from agentrecall.index import Embedder, FastEmbedder, update_index
 from agentrecall.redact import RedactingWriter
@@ -65,6 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
                     help="hide a session from recall (default: the current one)")
     ap.add_argument("--unforget", metavar="SESSION")
     ap.add_argument("--forgotten", action="store_true", help="list forgotten sessions")
+    ap.add_argument("--wait", action="store_true", help="never search in the background (see recall install claude)")
     ap.add_argument("--config", type=Path, metavar="PATH", help="config file (default ~/.config/agentrecall/config.toml)")
     ap.add_argument("--version", action="version", version=f"agentrecall {__version__}")
     return ap
@@ -261,9 +266,36 @@ class App:
             self.print(f"{sid} {self.titles.get(sid, '')}".rstrip())
 
 
+# Subcommands with their own argument parsers. They live in their own modules so this
+# file keeps the search interface only. Only their exact shapes count as a subcommand,
+# so `recall install docker` is still a search (as is anything after `recall --`).
+INSTALL_TARGETS = ("claude", "codex", "opencode")
+
+
+def is_subcommand(argv: list[str]) -> bool:
+    if argv == ["mcp"]:
+        return True
+    return len(argv) >= 2 and argv[0] == "install" and (argv[1] in INSTALL_TARGETS or argv[1].startswith("-"))
+
+
+def subcommand(name: str, argv: list[str], embedder: Embedder | None) -> int:
+    if name == "mcp":
+        from agentrecall.mcp_server import serve
+
+        return serve(embedder)
+    from agentrecall import install
+
+    return install.main(argv)
+
+
 def main(argv: list[str] | None = None, *, embedder: Embedder | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if is_subcommand(argv):
+        return subcommand(argv[0], argv[1:], embedder)
     ap = build_parser()
     a = ap.parse_args(argv)
+    if background.wanted(a):
+        return background.spawn(argv, a.terms)
     try:
         config = load_config(a.config)
         app = App(config, RedactingWriter(sys.stdout), embedder, a.agent)
