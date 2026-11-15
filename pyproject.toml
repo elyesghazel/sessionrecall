@@ -20,9 +20,15 @@ classifiers = [
 
 [project.scripts]
 recall = "agentrecall.cli:main"
+recall-inject = "agentrecall.background:inject_main"
+
+[project.optional-dependencies]
+mcp = [
+    "mcp>=2",
+]
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "mcp>=2"]
 
 [build-system]
 requires = ["hatchling>=1.26"]

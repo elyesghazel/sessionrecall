@@ -220,3 +220,10 @@ def test_deleted_opencode_session(recall, all_agents, opencode_dir):
     db.execute("delete from session where id=?", (WEBP,))
     db.commit()
     assert "(transcript deleted)" in recall("photos webp")
+
+
+def test_subcommand_words_are_still_searchable():
+    assert cli.is_subcommand(["mcp"]) and cli.is_subcommand(["install", "codex", "--print"])
+    assert cli.is_subcommand(["install", "--help"])
+    for argv in (["mcp", "server"], ["install", "docker"], ["install"], ["--", "mcp"]):
+        assert not cli.is_subcommand(argv), argv

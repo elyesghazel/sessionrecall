@@ -56,6 +56,77 @@ A search embeds up to 150 new chunks itself. Keep the index fresh with a timer, 
 */15 * * * * nice -n 19 recall --index
 ```
 
+## Let your agent search (MCP)
+
+`recall mcp` is a stdio [MCP](https://modelcontextprotocol.io) server, so an agent can
+search its own past sessions. It needs the `mcp` extra:
+
+```sh
+uv tool install 'agentrecall[mcp]'    # or: pipx install 'agentrecall[mcp]'
+```
+
+Tools (each takes an optional `agent`, a source name such as `claude`):
+
+| tool | what it returns |
+|---|---|
+| `search` | best snippets per session, by meaning; `exact: true` for literal words. Filters: `since_days`, `date_from`, `date_to`, `role`, `limit` |
+| `list_sessions` | recent sessions (with dates: the ones active then), `exclude` regex, `limit` |
+| `show_session` | one session, user turns and final replies trimmed (`full: true` for everything), paged by `offset` |
+
+Results are redacted like everything else recall prints and capped at 12,000 characters,
+so a tool call never floods the agent's context.
+
+### Install into an agent
+
+```sh
+recall install claude     # MCP server + /recall skill + background search hook
+recall install codex      # [mcp_servers.recall] in ~/.codex/config.toml ($CODEX_HOME)
+recall install opencode   # mcp.servers.recall in ~/.config/opencode/opencode.json
+```
+
+Each one prints what it changes and backs up every file it rewrites to
+`<file>.bak-agentrecall-<time>`. Running it again changes nothing. `--print` shows the
+plan and the snippets without writing; `--uninstall` removes exactly what was added.
+`--command PATH` puts another `recall` executable into the config (default: the one
+you ran). Restart the agent afterwards.
+
+Or add it by hand:
+
+- **Claude Code**: `claude mcp add --scope user recall -- recall mcp`
+  (stored in `~/.claude.json` under `mcpServers`).
+- **Codex** (`~/.codex/config.toml`):
+
+  ```toml
+  [mcp_servers.recall]
+  command = "recall"
+  args = ["mcp"]
+  ```
+
+- **OpenCode** (`~/.config/opencode/opencode.json`; older versions put servers directly
+  under `mcp` with `"enabled": true`, which `recall install opencode` detects):
+
+  ```json
+  {
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": { "servers": { "recall": { "type": "local", "command": ["recall", "mcp"] } } }
+  }
+  ```
+
+### Claude Code extras
+
+`recall install claude` also adds, in `~/.claude/settings.json` (or `$CLAUDE_CONFIG_DIR`):
+
+- **Background search.** It sets `AGENTRECALL_BACKGROUND=1`, so `recall <query>` run by
+  the agent inside a session returns at once and searches detached (the model load and
+  new embeddings can take a few seconds). The `recall-inject` hook (PostToolUse and Stop)
+  then attaches the results, headed `[recall results for: ...]`, to the next tool result,
+  or blocks the stop once to hand them over. Pending results wait in
+  `<cache_dir>/inbox/<session-id>/`. `recall --wait <query>` searches inline instead.
+  Skip all of this with `--no-hook`.
+- **A `/recall` skill** in `~/.claude/skills/recall/SKILL.md` that tells the agent when
+  and how to search. Skip with `--no-skill`; an existing skill of your own with that
+  name is never overwritten.
+
 ## Models
 
 Any [fastembed](https://github.com/qdrant/fastembed) text model works. Presets:
