@@ -6,8 +6,13 @@ All notable changes are listed here. The format follows
 
 ## [0.1.0] - unreleased
 
-First public release. The project was called `agentrecall` before release and was
-renamed because PyPI rejects that name.
+The project was called `agentrecall` before release and was renamed to `sessionrecall`.
+It is not published to PyPI: the names were taken or rejected, and
+[recall-agents](https://github.com/alirng/recall) and
+[session-recall](https://pypi.org/project/session-recall/) already cover this ground and
+are further along. sessionrecall stays a small portfolio project, installed from GitHub.
+The release workflow builds the wheel and attaches it to a GitHub release instead of
+uploading it to PyPI.
 
 ### Added
 
