@@ -1,0 +1,11 @@
+{
+ "id": "ses_4d02a7c93ffeQrStUvWxYzAbCd",
+ "projectID": "proj_demo_blog",
+ "directory": "/srv/demo/blog",
+ "title": "Dark mode",
+ "version": "0.15.0",
+ "time": {
+  "created": 1766257200000,
+  "updated": 1766257440000
+ }
+}

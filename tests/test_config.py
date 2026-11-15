@@ -5,6 +5,8 @@ import pytest
 from agentrecall.config import MODELS, Config, ConfigError, config_from_dict, load_config
 from agentrecall.sources import build_sources
 from agentrecall.sources.claude import ClaudeCodeSource
+from agentrecall.sources.codex import CodexSource
+from agentrecall.sources.opencode import OpenCodeSource
 
 
 def test_defaults_follow_xdg(isolated_env):
@@ -12,7 +14,7 @@ def test_defaults_follow_xdg(isolated_env):
     assert cfg.model_id == MODELS["multilingual-mini"].id
     assert cfg.index_path == isolated_env / ".cache" / "agentrecall" / "index.sqlite"
     assert cfg.forgotten_path == isolated_env / ".local" / "state" / "agentrecall" / "forgotten"
-    assert cfg.sources == {"claude": {}}
+    assert cfg.sources == {}
 
 
 def test_file_and_env_override(isolated_env, monkeypatch, tmp_path):
@@ -58,3 +60,20 @@ def test_sources(tmp_path):
     assert build_sources(config_from_dict({"sources": {"claude": {"enabled": False}}})) == []
     with pytest.raises(ConfigError, match="unknown source"):
         build_sources(config_from_dict({"sources": {"nope": {}}}))
+
+
+def test_installed_agents_are_detected(isolated_env, monkeypatch, codex_home):
+    assert build_sources(Config()) == []
+    (isolated_env / ".claude" / "projects").mkdir(parents=True)
+    (isolated_env / ".local" / "share" / "opencode").mkdir(parents=True)
+    (isolated_env / ".local" / "share" / "opencode" / "opencode.db").touch()
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
+    assert [s.name for s in build_sources(Config())] == ["claude", "codex", "opencode"]
+    cfg = config_from_dict({"sources": {"codex": {"enabled": False}}})
+    assert [s.name for s in build_sources(cfg)] == ["claude", "opencode"]
+
+
+def test_configured_source_is_used_even_if_not_found(tmp_path):
+    cfg = config_from_dict({"sources": {"codex": {"home": str(tmp_path / "nowhere")}, "opencode": {}}})
+    srcs = build_sources(cfg)
+    assert [type(s) for s in srcs] == [CodexSource, OpenCodeSource]

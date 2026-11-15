@@ -6,8 +6,13 @@ Example config.toml:
     # cache_dir = "~/.cache/agentrecall"
     # threads = 4
 
+    # Installed agents are found on their own; a table configures one.
     [sources.claude]
     # paths = ["~/.claude/projects"]
+    [sources.codex]
+    # home = "~/.codex"
+    [sources.opencode]
+    # enabled = false
 
     [titles]
     # command = ["my-titles-script"]  # prints "<session-id><TAB><title>" lines
@@ -75,8 +80,9 @@ class Config:
     inline_max: int = 150
     chunk_chars: int | None = None
     chunk_overlap: int | None = None
-    # Source name -> its options table. Every source here is enabled unless `enabled = false`.
-    sources: dict[str, dict[str, Any]] = field(default_factory=lambda: {"claude": {}})
+    # Source name -> its options table. Agents found on disk are used without one; a listed
+    # source is always used unless `enabled = false`.
+    sources: dict[str, dict[str, Any]] = field(default_factory=dict)
     titles_command: list[str] | None = None
 
     @property

@@ -23,9 +23,15 @@ class Filters:
     dates: DateFilter = DateFilter()
     role: str | None = None
     exclude: frozenset[str] = frozenset()  # session ids
+    agent: str | None = None  # Source.name
 
-    def match(self, sid: str, ts: str, role: str) -> bool:
-        return sid not in self.exclude and (not self.role or role == self.role) and self.dates.match(ts)
+    def match(self, sid: str, ts: str, role: str, source: str = "") -> bool:
+        return (
+            sid not in self.exclude
+            and (not self.role or role == self.role)
+            and (not self.agent or source == self.agent)
+            and self.dates.match(ts)
+        )
 
 
 @dataclass(frozen=True)
@@ -53,7 +59,7 @@ def semantic_search(
     chunks: list[Chunk], embedder: Embedder, terms: list[str], filters: Filters, limit: int
 ) -> list[SessionResult]:
     """Rank chunks by meaning, then group the best few per session."""
-    rows = [c for c in chunks if filters.match(c.sid, c.ts, c.role)]
+    rows = [c for c in chunks if filters.match(c.sid, c.ts, c.role, c.source)]
     if not rows:
         return []
     q = embedder.embed_query(" ".join(terms))
@@ -101,9 +107,11 @@ def exact_search(
 ) -> Iterator[ExactHit]:
     """Turns that match every pattern, newest session first."""
     for src, session in all_sessions(sources, set(filters.exclude)):
+        if filters.agent and src.name != filters.agent:
+            continue
         turns, _ = src.turns(session.path, 0)
         for t in turns:
-            if not filters.match(session.id, t.ts, t.role):
+            if not filters.match(session.id, t.ts, t.role, src.name):
                 continue
             matches = [p.search(t.text) for p in patterns]
             if all(matches):
