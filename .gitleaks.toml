@@ -1,0 +1,7 @@
+# gitleaks config: the default rules, minus the fake secrets the redaction tests feed in.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "inputs for tests/test_redact.py, not real credentials"
+paths = ['''tests/test_redact\.py''']
