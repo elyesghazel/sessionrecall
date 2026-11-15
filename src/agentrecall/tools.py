@@ -11,7 +11,6 @@ import io
 import re
 import threading
 from collections.abc import Callable
-from dataclasses import replace
 from functools import cached_property
 
 from agentrecall.cli import App
@@ -19,7 +18,7 @@ from agentrecall.config import Config, load_config
 from agentrecall.index import Embedder, FastEmbedder
 from agentrecall.redact import RedactingWriter, redact
 from agentrecall.search import Filters
-from agentrecall.store import Store
+from agentrecall.sources import REGISTRY
 from agentrecall.timeutil import DateFilter
 
 MAX_CHARS = 12_000  # hard cap on one tool result
@@ -29,30 +28,6 @@ DIGEST_CHARS = 600  # per turn in show_session unless full=True
 
 class ToolError(Exception):
     """A problem the calling agent can fix (bad id, unknown agent, bad date)."""
-
-
-class _SourceStore:
-    """A Store view that only returns one source's chunks."""
-
-    def __init__(self, store: Store, source: str) -> None:
-        self._store, self._source = store, source
-
-    def chunks(self):
-        return [c for c in self._store.chunks() if c.source == self._source]
-
-    def __getattr__(self, name: str):
-        return getattr(self._store, name)
-
-
-class _AgentApp(App):
-    def __init__(self, config: Config, out, embedder: Embedder, agent: str | None) -> None:
-        super().__init__(config, out, embedder)
-        self.agent = agent
-
-    @cached_property
-    def store(self):
-        store = super().store
-        return _SourceStore(store, self.agent) if self.agent else store
 
 
 class Tools:
@@ -68,19 +43,12 @@ class Tools:
         c = self.config
         return self._embedder or FastEmbedder(c.model_id, c.models_dir, c.threads)
 
-    def agents(self) -> list[str]:
-        return [n for n, opts in self.config.sources.items() if opts.get("enabled", True)]
-
     def _run(self, agent: str | None, body: Callable[[App], None]) -> str:
-        if agent:
-            if agent not in self.agents():
-                raise ToolError(f"unknown agent {agent!r}, configured: {', '.join(self.agents())}")
-            config = replace(self.config, sources={agent: self.config.sources[agent]})
-        else:
-            config = self.config
+        if agent and agent not in REGISTRY:
+            raise ToolError(f"unknown agent {agent!r}, known: {', '.join(sorted(REGISTRY))}")
         buf = io.StringIO()
         with self._lock:
-            app = _AgentApp(config, RedactingWriter(buf), self.embedder, agent)
+            app = App(self.config, RedactingWriter(buf), self.embedder, agent or None)
             try:
                 body(app)
             except SystemExit as e:  # the CLI's way of saying "nothing found" and the like
@@ -113,7 +81,7 @@ class Tools:
 
         def body(app: App) -> None:
             exclude = app.forgotten.ids() | ({app.current_session} if app.current_session else set())
-            filters = Filters(dates, role, frozenset(exclude))
+            filters = Filters(dates, role, frozenset(exclude), agent or None)
             if exact:
                 app.exact([re.compile(re.escape(t), re.I) for t in terms], filters, _clamp(limit, EXACT_LIMIT, 100))
             else:

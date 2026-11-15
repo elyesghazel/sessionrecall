@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from conftest import BACKUP, MONITORING, WEBSHOP, HashEmbedder
+from conftest import BACKUP, MIGRATION, MONITORING, RATE_LIMIT, WEBP, WEBSHOP, HashEmbedder
 
 from agentrecall.tools import MAX_CHARS, ToolError, Tools
 
@@ -113,6 +113,7 @@ def test_list_and_show_over_stdio(client):
 def test_agent_filter_and_errors_over_stdio(client):
     assert "== " in client.call("search", query="grafana", agent="claude")
     assert client.call("search", query="grafana", agent="nope").startswith("error: unknown agent 'nope'")
+    assert client.call("search", query="grafana", agent="codex") == "nothing found"  # not on this machine
     assert client.call("show_session", session_id="ffffffff") == "no session ffffffff"
     assert client.call("list_sessions", date_from="last week").startswith("error: not a YYYY-MM-DD date")
 
@@ -156,3 +157,22 @@ def test_tool_errors(tools):
         tools.list_sessions(exclude="(")
     with pytest.raises(ToolError):
         tools.search("x", role="system")
+
+
+def test_agent_argument_over_stdio(all_agents):
+    c = StdioClient(all_agents)
+    c.send("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
+                          "clientInfo": {"name": "test-client", "version": "0"}})
+    c.send("notifications/initialized", notify=True)
+    try:
+        everything = c.call("search", query="nginx login bots")
+        assert f"== {RATE_LIMIT[:8]}  codex" in everything
+        codex = c.call("search", query="the", agent="codex", limit=20)
+        assert RATE_LIMIT[:8] in codex and MONITORING[:8] not in codex and "opencode" not in codex
+        assert c.call("search", query="user_name", exact=True, agent="codex").count("== ") == 1
+        assert MIGRATION[:8] in c.call("list_sessions", agent="codex")
+        assert "claude" not in c.call("list_sessions", agent="opencode").split("\n", 1)[1]
+        assert "/srv/demo/blog" in c.call("show_session", session_id=WEBP)
+        assert c.call("show_session", session_id=WEBP, agent="codex").startswith("no session")
+    finally:
+        c.close()
