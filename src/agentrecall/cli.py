@@ -5,6 +5,7 @@
   recall -r '<regex>'          a regular expression instead of terms
   recall --since 7 <query>     only the last 7 days
   recall --from 2026-01-05 --to 2026-01-11 <query>   only that local date range (inclusive)
+  recall --agent codex <query> only one agent's sessions (claude, codex, opencode)
   recall --list                recent sessions (with --from/--to: sessions active then)
   recall --show <session-id>   print a session's conversation (an id prefix is enough)
   recall --show <id> --digest  only user turns and final replies, trimmed
@@ -32,7 +33,7 @@ from agentrecall.config import Config, ConfigError, load_config
 from agentrecall.index import Embedder, FastEmbedder, update_index
 from agentrecall.redact import RedactingWriter
 from agentrecall.search import Filters, exact_search, semantic_search, snippet
-from agentrecall.sources import Session, Source, all_sessions, build_sources
+from agentrecall.sources import REGISTRY, Session, Source, all_sessions, build_sources, id_matches, short_id
 from agentrecall.store import Forgotten, Store
 from agentrecall.timeutil import DateFilter, ago, now_line, stamp
 from agentrecall.titles import load_titles
@@ -51,6 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--to", dest="date_to", type=_date, metavar="YYYY-MM-DD",
                     help="only turns on or before this local date")
     ap.add_argument("--role", choices=["user", "assistant"])
+    ap.add_argument("--agent", choices=sorted(REGISTRY), help="only sessions of this agent")
     ap.add_argument("-n", "--limit", type=int,
                     help="max sessions (semantic, default 8), hits (exact, default 40) or rows (--list, default 40)")
     ap.add_argument("--list", action="store_true", help="list recent sessions")
@@ -78,10 +80,13 @@ def _date(value: str) -> str:
 class App:
     """What one recall invocation needs, built lazily so --list never loads the model."""
 
-    def __init__(self, config: Config, out: TextIO, embedder: Embedder | None = None) -> None:
+    def __init__(
+        self, config: Config, out: TextIO, embedder: Embedder | None = None, agent: str | None = None
+    ) -> None:
         self.config = config
         self.out = out
         self._embedder = embedder
+        self.agent = agent
 
     def print(self, *parts: object) -> None:
         print(*parts, file=self.out)
@@ -119,16 +124,17 @@ class App:
         return store
 
     def sessions(self) -> list[tuple[Source, Session]]:
-        return all_sessions(self.sources, self.forgotten.ids())
+        found = all_sessions(self.sources, self.forgotten.ids())
+        return [(src, s) for src, s in found if not self.agent or src.name == self.agent]
 
     def project(self, source_name: str, path: str) -> str:
         src = self.by_name.get(source_name)
-        if not Path(path).exists():
+        if not (src.exists(Path(path)) if src else Path(path).exists()):
             return "(transcript deleted)"
         return src.project(Path(path)) if src else source_name
 
-    def header(self, sid: str, where: str, extra: str = "") -> str:
-        return "  ".join(p for p in (f"== {sid[:8]}", where, self.titles.get(sid, ""), extra) if p)
+    def header(self, sid: str, agent: str, where: str, extra: str = "") -> str:
+        return "  ".join(p for p in (f"== {short_id(sid)}", agent, where, self.titles.get(sid, ""), extra) if p)
 
     # --- commands ---------------------------------------------------------------
 
@@ -149,7 +155,7 @@ class App:
         self.print(now_line())
         for r in results:
             self.print()
-            self.print(self.header(r.sid, self.project(r.source, r.path),
+            self.print(self.header(r.sid, r.source, self.project(r.source, r.path),
                                    f"[{r.score:.2f}, best hit {ago(r.best_ts)}]"))
             for h in r.hits:
                 c = h.chunk
@@ -163,7 +169,7 @@ class App:
         for hit in exact_search(self.sources, patterns, filters):
             if hit.sid != last:
                 self.print()
-                self.print(self.header(hit.sid, hit.source.project(Path(hit.path))))
+                self.print(self.header(hit.sid, hit.source.name, hit.source.project(Path(hit.path))))
                 last = hit.sid
             t = hit.turn
             self.print(f"  {stamp(t.ts)} ({ago(t.ts)}) {t.role[:4]}: {snippet(t.text, hit.match)}")
@@ -195,13 +201,13 @@ class App:
                 when = datetime.fromtimestamp(s.mtime).strftime("%a %Y-%m-%d %H:%M")
             label = title or first.replace("\n", " ")[:70]
             mark = "  (this session)" if s.id == self.current_session else ""
-            self.print(f"{when}  {s.id[:8]}  {src.project(s.path):<28} {label}{mark}")
+            self.print(f"{when}  {short_id(s.id)}  {src.name:<8} {src.project(s.path):<28} {label}{mark}")
             shown += 1
             if shown >= limit:
                 break
 
     def show(self, prefix: str, digest: int) -> None:
-        matches = [(src, s) for src, s in self.sessions() if s.id.startswith(prefix)]
+        matches = [(src, s) for src, s in self.sessions() if id_matches(s.id, prefix)]
         ids = {s.id for _, s in matches}
         if not ids:
             raise SystemExit(f"no session {prefix}")
@@ -245,7 +251,7 @@ class App:
         )
         if prefix in known:
             return prefix
-        ids = {i for i in known if i.startswith(prefix)}
+        ids = {i for i in known if id_matches(i, prefix)}
         if len(ids) != 1:
             raise SystemExit(f"{prefix}: {'no' if not ids else 'more than one'} matching session")
         return ids.pop()
@@ -260,7 +266,7 @@ def main(argv: list[str] | None = None, *, embedder: Embedder | None = None) -> 
     a = ap.parse_args(argv)
     try:
         config = load_config(a.config)
-        app = App(config, RedactingWriter(sys.stdout), embedder)
+        app = App(config, RedactingWriter(sys.stdout), embedder, a.agent)
         return run(ap, a, app)
     except ConfigError as e:
         raise SystemExit(f"recall: {e}") from None
@@ -291,7 +297,7 @@ def run(ap: argparse.ArgumentParser, a: argparse.Namespace, app: App) -> int:
         ap.error("give search terms, -r, --list or --show")
 
     exclude = app.forgotten.ids() | ({app.current_session} if app.current_session else set())
-    filters = Filters(dates, a.role, frozenset(exclude))
+    filters = Filters(dates, a.role, frozenset(exclude), a.agent)
     if a.regex or a.exact:
         try:
             pats = [re.compile(a.regex, re.I)] if a.regex else [re.compile(re.escape(t), re.I) for t in a.terms]

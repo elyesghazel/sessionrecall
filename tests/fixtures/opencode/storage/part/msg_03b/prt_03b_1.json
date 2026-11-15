@@ -1,0 +1,10 @@
+{
+ "id": "prt_03b_1",
+ "sessionID": "ses_4d02a7c93ffeQrStUvWxYzAbCd",
+ "messageID": "msg_03b",
+ "type": "tool",
+ "tool": "edit",
+ "state": {
+  "status": "completed"
+ }
+}

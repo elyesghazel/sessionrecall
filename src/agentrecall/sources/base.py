@@ -11,6 +11,7 @@ integer cursor that grows as the session grows.
 
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -44,6 +45,10 @@ class Source(ABC):
         """Build the source from its `[sources.<name>]` table."""
         return cls()
 
+    def available(self) -> bool:
+        """Whether the agent looks installed here; auto-detection enables it if so."""
+        return True
+
     @abstractmethod
     def sessions(self) -> Iterator[Session]:
         """Every session on disk, in any order."""
@@ -56,9 +61,21 @@ class Source(ABC):
         """A short label for where the session ran, usually its working directory."""
         return path.parent.name
 
+    def exists(self, path: Path) -> bool:
+        """Whether the session's transcript is still there (it may live inside a database)."""
+        return path.exists()
+
     def current_session_id(self) -> str | None:
         """The session recall is being run from, if any; it is left out of results."""
         return None
+
+
+def tilde(path: str) -> str:
+    """`path` with the home directory written as ~."""
+    home = str(Path.home())
+    if path == home or path.startswith(home + os.sep):
+        return "~" + path[len(home):]
+    return path
 
 
 def read_new_lines(path: Path, offset: int) -> tuple[list[str], int]:
@@ -71,3 +88,13 @@ def read_new_lines(path: Path, offset: int) -> tuple[list[str], int]:
         data = f.read()
     end = data.rfind(b"\n") + 1
     return data[:end].decode(errors="replace").splitlines(), offset + end
+
+
+def short_id(sid: str) -> str:
+    """The id as shown in results: 8 characters, after a type prefix like OpenCode's `ses_`."""
+    return sid.split("_", 1)[-1][:8]
+
+
+def id_matches(sid: str, prefix: str) -> bool:
+    """Whether `prefix` starts the id, or the id after its type prefix."""
+    return sid.startswith(prefix) or sid.split("_", 1)[-1].startswith(prefix)

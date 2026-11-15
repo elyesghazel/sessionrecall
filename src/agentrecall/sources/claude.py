@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from agentrecall.sources.base import Session, Source, Turn, read_new_lines
+from agentrecall.sources.base import Session, Source, Turn, read_new_lines, tilde
 
 # Context the harness injects into user turns; not something anyone said.
 NOISE = re.compile(
@@ -62,6 +62,9 @@ class ClaudeCodeSource(Source):
             paths = [paths]
         return cls([Path(os.path.expanduser(p)) for p in paths] if paths else None)
 
+    def available(self) -> bool:
+        return any(p.is_dir() for p in self.paths)
+
     def sessions(self) -> Iterator[Session]:
         for root in self.paths:
             for f in root.glob("*/*.jsonl"):
@@ -74,7 +77,6 @@ class ClaudeCodeSource(Source):
 
     def project(self, path: Path) -> str:
         """The session's cwd; the folder name is only a lossy encoding of it."""
-        home = str(Path.home())
         with path.open(errors="replace") as f:
             for i, line in enumerate(f):
                 if i > 50:
@@ -86,7 +88,7 @@ class ClaudeCodeSource(Source):
                 except ValueError:
                     continue
                 if cwd:
-                    return "~" + cwd[len(home):] if cwd == home or cwd.startswith(home + os.sep) else cwd
+                    return tilde(cwd)
         return path.parent.name
 
     def current_session_id(self) -> str | None:
