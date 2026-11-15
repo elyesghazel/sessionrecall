@@ -1,0 +1,7 @@
+{
+ "id": "prt_0701_0",
+ "sessionID": "ses_e37b60f2286650f395f5fb9ad6",
+ "messageID": "msg_0701",
+ "type": "text",
+ "text": "It starts before Redis accepts connections and exits on the first failed connect. I added a healthcheck to the redis service and `depends_on: redis: condition: service_healthy` to the worker, so compose waits for Redis first."
+}

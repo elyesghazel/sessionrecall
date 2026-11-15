@@ -1,0 +1,7 @@
+{
+ "id": "prt_1100_0",
+ "sessionID": "ses_41cbcd0671f4567cb87b9af4af",
+ "messageID": "msg_1100",
+ "type": "text",
+ "text": "Searching notes with LIKE is slow once there are a few thousand. Can SQLite do better?"
+}

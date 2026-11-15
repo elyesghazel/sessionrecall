@@ -1,0 +1,7 @@
+{
+ "id": "prt_0203_0",
+ "sessionID": "ses_3e8d81a3536d5a6a8a6ca778b2",
+ "messageID": "msg_0203",
+ "type": "text",
+ "text": "I switched the tests to Vitest with the jsdom environment. The existing tests run unchanged apart from replacing `jest.fn` with `vi.fn`."
+}

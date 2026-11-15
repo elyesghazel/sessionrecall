@@ -1,0 +1,7 @@
+{
+ "id": "prt_1103_0",
+ "sessionID": "ses_41cbcd0671f4567cb87b9af4af",
+ "messageID": "msg_1103",
+ "type": "text",
+ "text": "The query now returns `snippet(notes_fts, 1, '<mark>', '</mark>', '...', 12)`, and the frontend renders the mark tags."
+}

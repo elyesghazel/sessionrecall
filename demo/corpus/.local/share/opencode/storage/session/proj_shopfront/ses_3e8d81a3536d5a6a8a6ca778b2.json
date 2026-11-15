@@ -1,0 +1,11 @@
+{
+ "id": "ses_3e8d81a3536d5a6a8a6ca778b2",
+ "projectID": "proj_shopfront",
+ "directory": "/work/shopfront",
+ "title": "Move off create-react-app",
+ "version": "0.15.0",
+ "time": {
+  "created": 1789393200000,
+  "updated": 1789394760000
+ }
+}
